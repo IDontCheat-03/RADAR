@@ -1,0 +1,26 @@
+clc; clear; close all;
+
+c = 3e8;              % Speed of light
+fc = 10e9;            % Carrier frequency (10 GHz)
+v = 15;               % Target velocity (m/s)
+
+lambda = c/fc;        % Wavelength
+fd = 2*v/lambda      % Doppler frequency
+
+fs = 1e5;             % Sampling frequency
+t = 0:1/fs:0.01;      % Time vector
+
+tx = cos(2*pi*fc*t);              % Transmitted signal
+rx = cos(2*pi*(fc+fd)*t);         % Received signal
+
+mix = tx .* rx;                   % Mixer output
+
+Y = abs(fft(mix));                % FFT
+f = (0:length(Y)-1)*(fs/length(Y));
+
+plot(f, Y); grid on;
+xlim([0 2000])
+xlabel('Frequency (Hz)')
+ylabel('Magnitude')
+title('CW Radar Doppler Frequency')
+
