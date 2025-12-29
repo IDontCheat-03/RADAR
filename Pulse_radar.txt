@@ -1,0 +1,21 @@
+clc; clear; close all;
+
+c = 3e8;          % Speed of light
+fs = 1e6;         % Sampling frequency
+Tp = 1e-6;        % Pulse width
+R = 3000;         % Target range (m)
+
+t = 0:1/fs:50e-6; % Time axis
+tx = rectpuls(t,Tp);          % Transmit pulse
+
+delay = 2*R/c;                % True delay
+rx = rectpuls(t-delay,Tp);    % Echo pulse
+
+corr = xcorr(rx,tx);          % Cross-correlation
+[~,idx] = max(corr);          % Peak location
+
+delay_est = (idx - length(t))/fs; % Estimated delay
+R_est = delay_est * c / 2;         % Estimated range
+
+disp(['Estimated Range = ',num2str(R_est),' meters'])
+
