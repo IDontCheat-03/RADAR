@@ -1,0 +1,49 @@
+clc;
+clear;
+
+% ------------------------------------------------
+% Target coordinates (x, y, z) in meters
+% Each row represents one target
+% ------------------------------------------------
+targets = [ ...
+    1000,  500,  200;   % Target 1
+    2000, -300,  400;   % Target 2
+    1500, 1000,  100;   % Target 3
+    2500,  200,  600];  % Target 4
+
+% Number of targets
+numTargets = size(targets, 1);
+
+% Preallocate result arrays
+range = zeros(numTargets,1);
+azimuth = zeros(numTargets,1);
+elevation = zeros(numTargets,1);
+
+% ------------------------------------------------
+% Loop through each target
+% ------------------------------------------------
+for k = 1:numTargets
+    
+    x = targets(k,1);
+    y = targets(k,2);
+    z = targets(k,3);
+    
+    % Range calculation
+    range(k) = sqrt(x^2 + y^2 + z^2);
+    
+    % Azimuth angle (degrees)
+    azimuth(k) = atan2d(y, x);
+    
+    % Elevation angle (degrees)
+    elevation(k) = atan2d(z, sqrt(x^2 + y^2));
+    
+end
+
+fprintf('\nTarget   Range(m)   Azimuth(deg)   Elevation(deg)\n');
+fprintf('--------------------------------------------------\n');
+
+for k = 1:numTargets
+    fprintf('%6d   %8.2f     %8.2f        %8.2f\n', ...
+            k, range(k), azimuth(k), elevation(k));
+end
+
