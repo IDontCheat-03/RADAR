@@ -1,0 +1,90 @@
+clc; clear; close all;
+
+%% ================= BASIC PARAMETERS =================
+c  = 3e8;          % Speed of light (m/s)
+fc = 10e9;         % Carrier frequency (Hz)
+fs = 20e6;         % Sampling frequency (Hz)
+T  = 1e-6;         % Pulse duration (s)
+
+Nhops = 32;        % Number of frequency hops
+Ns = round(T*fs);  % Samples per hop
+t = (0:Ns-1)/fs;   % Time vector
+
+%% ================= FREQUENCY HOPPING CODES =================
+FH = [ ...
+5,10,15,20,25,30,2,7,12,17,22,27,4,9,14,19,24,29,1,6,11,16,21,26,3,8,13,18,23,28,31,0;
+0,6,12,18,24,30,3,9,15,21,27,1,7,13,19,25,31,5,11,17,23,29,2,8,14,20,26,4,10,16,22,28;
+31,25,19,13,7,1,28,22,16,10,4,30,24,18,12,6,0,27,21,15,9,3,29,23,17,11,5,26,20,14,8,2
+];
+
+f_step = 2e6;      % Frequency hop spacing (Hz)
+
+%% ================= TRANSMITTER SIGNALS =================
+TX = zeros(3, Nhops*Ns);   % Preallocate
+
+for tx = 1:3
+    for k = 1:Nhops
+        f_hop = fc + FH(tx,k)*f_step;
+        pulse = exp(1j*2*pi*f_hop*t);
+        idx = (k-1)*Ns + 1 : k*Ns;
+        TX(tx,idx) = pulse;
+    end
+    TX(tx,:) = TX(tx,:) / norm(TX(tx,:));  % Normalize
+end
+
+%% ================= TARGET & CHANNEL =================
+R0 = 150;                  % Base range (m)
+offset = [0 8 18];         % Different TX ranges
+SNR = 15;
+
+RX = zeros(3, length(TX(1,:)) + 3000);
+
+for rx = 1:3
+    rx_sig = zeros(1, size(RX,2));
+    
+    for tx = 1:3
+        R = R0 + offset(tx);
+        tau = 2*R/c;
+        delay = round(tau*fs);
+        delayed = zeros(1, size(RX,2));
+        delayed(delay+1 : delay+length(TX(tx,:))) = TX(tx,:);
+        rx_sig = rx_sig + delayed;
+    end
+    
+    RX(rx,:) = awgn(rx_sig, SNR, 'measured');
+end
+
+%% ================= RANGE DETECTION =================
+figure('Color','w');
+
+for i = 1:3
+    [mf,lags] = xcorr(RX(i,:), TX(i,:));
+    range = (lags*c)/(2*fs);
+    
+    subplot(3,1,i)
+    plot(range, abs(mf)/max(abs(mf)), 'LineWidth',1.5)
+    xline(R0 + offset(i),'--r','Target')
+    xlim([140 180])
+    grid on
+    title(['System ',num2str(i),' Detection'])
+    ylabel('Normalized Output')
+end
+xlabel('Range (m)')
+
+%% ================= ORTHOGONALITY CHECK =================
+figure('Color','black');
+
+[x12,l] = xcorr(TX(1,:), TX(2,:), 'normalized');
+[x13,~] = xcorr(TX(1,:), TX(3,:), 'normalized');
+[x23,~] = xcorr(TX(2,:), TX(3,:), 'normalized');
+
+plot(l, abs(x12), 'r', 'LineWidth',1); hold on
+plot(l, abs(x13), 'g', 'LineWidth',1)
+plot(l, abs(x23), 'm', 'LineWidth',1)
+
+legend('TX1 vs TX2','TX1 vs TX3','TX2 vs TX3')
+title('Frequency Hopping Waveform Orthogonality')
+xlabel('Lag'); ylabel('Correlation Magnitude')
+ylim([0 0.3])
+grid on;
+
